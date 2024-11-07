@@ -1,36 +1,46 @@
 <script>
   import ChatInput from '../lib/components/ChatInput.svelte';
+  import ChatBubble from '../lib/components/ChatBubble.svelte';
+
+  // providers
+  import { AnthropicProvider } from '../lib/providers/anthropic.js';
+  import { OpenAIProvider } from '$lib/providers/openai';
+
+  const llm = new AnthropicProvider(import.meta.env.VITE_ANTHROPIC_API_KEY);
+  //const llm = new OpenAIProvider(import.meta.env.VITE_OPENAI_API_KEY);
 
   let messages = [];
 
-  function handleMessage(event) {
-    messages = [...messages, {
+  async function handleMessage(event) {
+    const userMessage = {
       text: event.detail,
       timestamp: new Date(),
       isUser: true
-    }];
+    };
+    messages = [...messages, userMessage];
 
-    setTimeout(() => {
+    try {
+      const response = await llm.sendMessage(event.detail);
       messages = [...messages, {
-        text: "This is a dummy response from the bot.",
+        text: response,
         timestamp: new Date(),
         isUser: false
       }];
-    }, 1000);
+    } catch (error) {
+      messages = [...messages, {
+        text: error,
+        timestamp: new Date(),
+        isUser: false,
+        isError: true
+      }];
+    }
   }
 </script>
 
 <div class="chat-container">
   <div class="messages">
     {#each messages as message}
-      <div class="message {message.isUser ? 'user' : 'bot'}">
-        <div class="message-content">
-          {message.text}
-        </div>
-        <div class="message-timestamp">
-          {message.timestamp.toLocaleTimeString()}
-        </div>
-      </div>
+      <ChatBubble {message} />
     {/each}
   </div>
   <div class="input-spacer"></div>
